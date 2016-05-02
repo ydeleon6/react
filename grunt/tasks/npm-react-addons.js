@@ -1,6 +1,5 @@
 'use strict';
 
-var assign = require('object-assign');
 var fs = require('fs');
 var grunt = require('grunt');
 var path = require('path');
@@ -17,7 +16,7 @@ var addons = {
     docs: 'two-way-binding-helpers',
   },
   Perf: {
-    module: 'ReactDefaultPerf',
+    module: 'ReactPerfAnalysis',
     name: 'perf',
     docs: 'perf',
   },
@@ -76,7 +75,7 @@ function buildReleases() {
     var destLicense = path.join(destDir, 'LICENSE');
     var destPatents = path.join(destDir, 'PATENTS');
 
-    var pkgData = assign({}, pkgTemplate);
+    var pkgData = Object.assign({}, pkgTemplate);
     pkgData.name = pkgName;
 
     grunt.file.mkdir(destDir);

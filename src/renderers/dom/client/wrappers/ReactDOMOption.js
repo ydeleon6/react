@@ -12,9 +12,9 @@
 'use strict';
 
 var ReactChildren = require('ReactChildren');
+var ReactDOMComponentTree = require('ReactDOMComponentTree');
 var ReactDOMSelect = require('ReactDOMSelect');
 
-var assign = require('Object.assign');
 var warning = require('warning');
 
 /**
@@ -33,8 +33,16 @@ var ReactDOMOption = {
 
     // Look up whether this option is 'selected'
     var selectValue = null;
-    if (nativeParent != null && nativeParent._tag === 'select') {
-      selectValue = ReactDOMSelect.getSelectValueContext(nativeParent);
+    if (nativeParent != null) {
+      var selectParent = nativeParent;
+
+      if (selectParent._tag === 'optgroup') {
+        selectParent = selectParent._nativeParent;
+      }
+
+      if (selectParent != null && selectParent._tag === 'select') {
+        selectValue = ReactDOMSelect.getSelectValueContext(selectParent);
+      }
     }
 
     // If the value is null (e.g., no specified value or after initial mount)
@@ -58,8 +66,17 @@ var ReactDOMOption = {
     inst._wrapperState = {selected: selected};
   },
 
+  postMountWrapper: function(inst) {
+    // value="" should make a value attribute (#6219)
+    var props = inst._currentElement.props;
+    if (props.value != null) {
+      var node = ReactDOMComponentTree.getNodeFromInstance(inst);
+      node.setAttribute('value', props.value);
+    }
+  },
+
   getNativeProps: function(inst, props) {
-    var nativeProps = assign({selected: undefined, children: undefined}, props);
+    var nativeProps = Object.assign({selected: undefined, children: undefined}, props);
 
     // Read state only from initial mount because <select> updates value
     // manually; we need the initial state only for server rendering

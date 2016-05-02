@@ -14,6 +14,7 @@
 describe('DOMPropertyOperations', function() {
   var DOMPropertyOperations;
   var DOMProperty;
+  var ReactDOMComponentTree;
 
   beforeEach(function() {
     jest.resetModuleRegistry();
@@ -22,6 +23,7 @@ describe('DOMPropertyOperations', function() {
 
     DOMPropertyOperations = require('DOMPropertyOperations');
     DOMProperty = require('DOMProperty');
+    ReactDOMComponentTree = require('ReactDOMComponentTree');
   });
 
   describe('createMarkupForProperty', function() {
@@ -175,6 +177,7 @@ describe('DOMPropertyOperations', function() {
 
     beforeEach(function() {
       stubNode = document.createElement('div');
+      ReactDOMComponentTree.precacheNode({}, stubNode);
     });
 
     it('should set values as properties by default', function() {
@@ -221,6 +224,16 @@ describe('DOMPropertyOperations', function() {
       expect(stubNode.getAttribute('role')).toBe('<html>');
     });
 
+    it('should not remove empty attributes for special properties', function() {
+      stubNode = document.createElement('input');
+      ReactDOMComponentTree.precacheNode({}, stubNode);
+
+      DOMPropertyOperations.setValueForProperty(stubNode, 'value', '');
+      // JSDOM does not behave correctly for attributes/properties
+      //expect(stubNode.getAttribute('value')).toBe('');
+      expect(stubNode.value).toBe('');
+    });
+
     it('should remove for falsey boolean properties', function() {
       DOMPropertyOperations.setValueForProperty(
         stubNode,
@@ -246,7 +259,7 @@ describe('DOMPropertyOperations', function() {
     });
 
     it('should use mutation method where applicable', function() {
-      var foobarSetter = jest.genMockFn();
+      var foobarSetter = jest.fn();
       // inject foobar DOM property
       DOMProperty.injection.injectDOMPropertyConfig({
         Properties: {foobar: null},
@@ -282,6 +295,23 @@ describe('DOMPropertyOperations', function() {
       // className should be '', not 'null' or null (which becomes 'null' in
       // some browsers)
       expect(stubNode.className).toBe('');
+      expect(stubNode.getAttribute('class')).toBe(null);
+    });
+
+    it('should remove property properly for boolean properties', function() {
+      DOMPropertyOperations.setValueForProperty(
+        stubNode,
+        'hidden',
+        true
+      );
+      expect(stubNode.hasAttribute('hidden')).toBe(true);
+
+      DOMPropertyOperations.setValueForProperty(
+        stubNode,
+        'hidden',
+        false
+      );
+      expect(stubNode.hasAttribute('hidden')).toBe(false);
     });
 
     it('should remove property properly even with different name', function() {
@@ -291,6 +321,9 @@ describe('DOMPropertyOperations', function() {
         Properties: {foobar: DOMProperty.injection.MUST_USE_PROPERTY},
         DOMPropertyNames: {
           foobar: 'className',
+        },
+        DOMAttributeNames: {
+          foobar: 'class',
         },
       });
 
@@ -311,6 +344,58 @@ describe('DOMPropertyOperations', function() {
       expect(stubNode.className).toBe('');
     });
 
+  });
+
+  describe('deleteValueForProperty', function() {
+    var stubNode;
+
+    beforeEach(function() {
+      stubNode = document.createElement('div');
+      ReactDOMComponentTree.precacheNode({}, stubNode);
+    });
+
+    it('should remove attributes for normal properties', function() {
+      DOMPropertyOperations.setValueForProperty(stubNode, 'title', 'foo');
+      expect(stubNode.getAttribute('title')).toBe('foo');
+      expect(stubNode.title).toBe('foo');
+
+      DOMPropertyOperations.deleteValueForProperty(stubNode, 'title');
+      expect(stubNode.getAttribute('title')).toBe(null);
+      // JSDOM does not behave correctly for attributes/properties
+      //expect(stubNode.title).toBe('');
+    });
+
+    it('should not remove attributes for special properties', function() {
+      stubNode = document.createElement('input');
+      ReactDOMComponentTree.precacheNode({}, stubNode);
+
+      stubNode.setAttribute('value', 'foo');
+
+      DOMPropertyOperations.deleteValueForProperty(stubNode, 'value');
+      // JSDOM does not behave correctly for attributes/properties
+      //expect(stubNode.getAttribute('value')).toBe('foo');
+      expect(stubNode.value).toBe('');
+    });
+
+    it('should not leave all options selected when deleting multiple', function() {
+      stubNode = document.createElement('select');
+      ReactDOMComponentTree.precacheNode({}, stubNode);
+
+      stubNode.multiple = true;
+      stubNode.appendChild(document.createElement('option'));
+      stubNode.appendChild(document.createElement('option'));
+      stubNode.options[0].selected = true;
+      stubNode.options[1].selected = true;
+
+      DOMPropertyOperations.deleteValueForProperty(stubNode, 'multiple');
+      expect(stubNode.getAttribute('multiple')).toBe(null);
+      expect(stubNode.multiple).toBe(false);
+
+      expect(
+        stubNode.options[0].selected &&
+        stubNode.options[1].selected
+      ).toBe(false);
+    });
   });
 
   describe('injectDOMPropertyConfig', function() {

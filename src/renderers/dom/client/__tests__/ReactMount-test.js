@@ -54,9 +54,8 @@ describe('ReactMount', function() {
     expect(function() {
       ReactTestUtils.renderIntoDocument('div');
     }).toThrow(
-      'ReactDOM.render(): Invalid component element. Instead of passing an ' +
-      'element string, make sure to instantiate it by passing it to ' +
-      'React.createElement.'
+      'ReactDOM.render(): Invalid component element. Instead of passing a ' +
+      'string like \'div\', pass React.createElement(\'div\') or <div />.'
     );
   });
 
@@ -70,8 +69,7 @@ describe('ReactMount', function() {
       ReactTestUtils.renderIntoDocument(Component);
     }).toThrow(
       'ReactDOM.render(): Invalid component element. Instead of passing a ' +
-      'component class, make sure to instantiate it by passing it to ' +
-      'React.createElement.'
+      'class like Foo, pass React.createElement(Foo) or <Foo />.'
     );
   });
 
@@ -89,8 +87,8 @@ describe('ReactMount', function() {
   it('should unmount and remount if the key changes', function() {
     var container = document.createElement('container');
 
-    var mockMount = jest.genMockFn();
-    var mockUnmount = jest.genMockFn();
+    var mockMount = jest.fn();
+    var mockUnmount = jest.fn();
 
     var Component = React.createClass({
       componentDidMount: mockMount,

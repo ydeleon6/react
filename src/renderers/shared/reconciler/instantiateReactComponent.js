@@ -14,14 +14,16 @@
 var ReactCompositeComponent = require('ReactCompositeComponent');
 var ReactEmptyComponent = require('ReactEmptyComponent');
 var ReactNativeComponent = require('ReactNativeComponent');
+var ReactInstrumentation = require('ReactInstrumentation');
 
-var assign = require('Object.assign');
 var invariant = require('invariant');
 var warning = require('warning');
 
 // To avoid a cyclic dependency, we create the final class in this module
-var ReactCompositeComponentWrapper = function() { };
-assign(
+var ReactCompositeComponentWrapper = function(element) {
+  this.construct(element);
+};
+Object.assign(
   ReactCompositeComponentWrapper.prototype,
   ReactCompositeComponent.Mixin,
   {
@@ -37,6 +39,21 @@ function getDeclarationErrorAddendum(owner) {
     }
   }
   return '';
+}
+
+function getDisplayName(instance) {
+  var element = instance._currentElement;
+  if (element == null) {
+    return '#empty';
+  } else if (typeof element === 'string' || typeof element === 'number') {
+    return '#text';
+  } else if (typeof element.type === 'string') {
+    return element.type;
+  } else if (instance.getName) {
+    return instance.getName() || 'Unknown';
+  } else {
+    return element.type.displayName || element.type.name || 'Unknown';
+  }
 }
 
 /**
@@ -55,6 +72,8 @@ function isInternalComponentType(type) {
   );
 }
 
+var nextDebugID = 1;
+
 /**
  * Given a ReactNode, create an instance that will actually be mounted.
  *
@@ -65,7 +84,8 @@ function isInternalComponentType(type) {
 function instantiateReactComponent(node) {
   var instance;
 
-  if (node === null || node === false) {
+  var isEmpty = node === null || node === false;
+  if (isEmpty) {
     instance = ReactEmptyComponent.create(instantiateReactComponent);
   } else if (typeof node === 'object') {
     var element = node;
@@ -87,7 +107,7 @@ function instantiateReactComponent(node) {
       // representation, we can drop this code path.
       instance = new element.type(element);
     } else {
-      instance = new ReactCompositeComponentWrapper();
+      instance = new ReactCompositeComponentWrapper(element);
     }
   } else if (typeof node === 'string' || typeof node === 'number') {
     instance = ReactNativeComponent.createInstanceForText(node);
@@ -101,7 +121,6 @@ function instantiateReactComponent(node) {
 
   if (__DEV__) {
     warning(
-      typeof instance.construct === 'function' &&
       typeof instance.mountComponent === 'function' &&
       typeof instance.receiveComponent === 'function' &&
       typeof instance.getNativeNode === 'function' &&
@@ -109,9 +128,6 @@ function instantiateReactComponent(node) {
       'Only React Components can be mounted.'
     );
   }
-
-  // Sets up the instance. This can probably just move into the constructor now.
-  instance.construct(node);
 
   // These two fields are used by the DOM and ART diffing algorithms
   // respectively. Instead of using expandos on components, we should be
@@ -122,6 +138,18 @@ function instantiateReactComponent(node) {
   if (__DEV__) {
     instance._isOwnerNecessary = false;
     instance._warnedAboutRefsInRender = false;
+  }
+
+  if (__DEV__) {
+    var debugID = isEmpty ? 0 : nextDebugID++;
+    instance._debugID = debugID;
+
+    var displayName = getDisplayName(instance);
+    ReactInstrumentation.debugTool.onSetDisplayName(debugID, displayName);
+    var owner = node && node._owner;
+    if (owner) {
+      ReactInstrumentation.debugTool.onSetOwner(debugID, owner._debugID);
+    }
   }
 
   // Internal instances should fully constructed at this point, so they should

@@ -937,4 +937,188 @@ describe('ReactUpdates', function() {
       ReactFeatureFlags.logTopLevelRenders = false;
     }
   });
+
+  it('throws in setState if the update callback is not a function', function() {
+    function Foo() {
+      this.a = 1;
+      this.b = 2;
+    }
+    var A = React.createClass({
+      getInitialState: function() {
+        return {};
+      },
+      render: function() {
+        return <div />;
+      },
+    });
+    var component = ReactTestUtils.renderIntoDocument(<A />);
+
+    expect(() => component.setState({}, 'no')).toThrow(
+      'setState(...): Expected the last optional `callback` argument ' +
+      'to be a function. Instead received: string.'
+    );
+    expect(() => component.setState({}, {})).toThrow(
+      'setState(...): Expected the last optional `callback` argument ' +
+      'to be a function. Instead received: Object.'
+    );
+    expect(() => component.setState({}, new Foo())).toThrow(
+      'setState(...): Expected the last optional `callback` argument ' +
+      'to be a function. Instead received: Foo (keys: a, b).'
+    );
+  });
+
+  it('throws in replaceState if the update callback is not a function', function() {
+    function Foo() {
+      this.a = 1;
+      this.b = 2;
+    }
+    var A = React.createClass({
+      getInitialState: function() {
+        return {};
+      },
+      render: function() {
+        return <div />;
+      },
+    });
+    var component = ReactTestUtils.renderIntoDocument(<A />);
+
+    expect(() => component.replaceState({}, 'no')).toThrow(
+      'replaceState(...): Expected the last optional `callback` argument ' +
+      'to be a function. Instead received: string.'
+    );
+    expect(() => component.replaceState({}, {})).toThrow(
+      'replaceState(...): Expected the last optional `callback` argument ' +
+      'to be a function. Instead received: Object.'
+    );
+    expect(() => component.replaceState({}, new Foo())).toThrow(
+      'replaceState(...): Expected the last optional `callback` argument ' +
+      'to be a function. Instead received: Foo (keys: a, b).'
+    );
+  });
+
+  it('throws in forceUpdate if the update callback is not a function', function() {
+    function Foo() {
+      this.a = 1;
+      this.b = 2;
+    }
+    var A = React.createClass({
+      getInitialState: function() {
+        return {};
+      },
+      render: function() {
+        return <div />;
+      },
+    });
+    var component = ReactTestUtils.renderIntoDocument(<A />);
+
+    expect(() => component.forceUpdate('no')).toThrow(
+      'forceUpdate(...): Expected the last optional `callback` argument ' +
+      'to be a function. Instead received: string.'
+    );
+    expect(() => component.forceUpdate({})).toThrow(
+      'forceUpdate(...): Expected the last optional `callback` argument ' +
+      'to be a function. Instead received: Object.'
+    );
+    expect(() => component.forceUpdate(new Foo())).toThrow(
+      'forceUpdate(...): Expected the last optional `callback` argument ' +
+      'to be a function. Instead received: Foo (keys: a, b).'
+    );
+  });
+
+  it('does not update one component twice in a batch (#2410)', function() {
+    var Parent = React.createClass({
+      getChild: function() {
+        return this.refs.child;
+      },
+      render: function() {
+        return <Child ref="child" />;
+      },
+    });
+
+    var renderCount = 0;
+    var postRenderCount = 0;
+    var once = false;
+    var Child = React.createClass({
+      getInitialState: function() {
+        return {updated: false};
+      },
+      componentWillUpdate: function() {
+        if (!once) {
+          once = true;
+          this.setState({updated: true});
+        }
+      },
+      componentDidMount: function() {
+        expect(renderCount).toBe(postRenderCount + 1);
+        postRenderCount++;
+      },
+      componentDidUpdate: function() {
+        expect(renderCount).toBe(postRenderCount + 1);
+        postRenderCount++;
+      },
+      render: function() {
+        expect(renderCount).toBe(postRenderCount);
+        renderCount++;
+        return <div />;
+      },
+    });
+
+    var parent = ReactTestUtils.renderIntoDocument(<Parent />);
+    var child = parent.getChild();
+    ReactDOM.unstable_batchedUpdates(function() {
+      parent.forceUpdate();
+      child.forceUpdate();
+    });
+  });
+
+  it('does not update one component twice in a batch (#6371)', function() {
+    var callbacks = [];
+    function emitChange() {
+      callbacks.forEach(c => c());
+    }
+
+    class App extends React.Component {
+      constructor(props) {
+        super(props);
+        this.state = { showChild: true };
+      }
+      componentDidMount() {
+        this.setState({ showChild: false });
+      }
+      render() {
+        return (
+          <div>
+            <ForceUpdatesOnChange />
+            {this.state.showChild && <EmitsChangeOnUnmount />}
+          </div>
+        );
+      }
+    }
+
+    class EmitsChangeOnUnmount extends React.Component {
+      componentWillUnmount() {
+        emitChange();
+      }
+      render() {
+        return null;
+      }
+    }
+
+    class ForceUpdatesOnChange extends React.Component {
+      componentDidMount() {
+        this.onChange = () => this.forceUpdate();
+        this.onChange();
+        callbacks.push(this.onChange);
+      }
+      componentWillUnmount() {
+        callbacks = callbacks.filter((c) => c !== this.onChange);
+      }
+      render() {
+        return <div key={Math.random()} onClick={function() {}} />;
+      }
+    }
+
+    ReactDOM.render(<App />, document.createElement('div'));
+  });
+
 });

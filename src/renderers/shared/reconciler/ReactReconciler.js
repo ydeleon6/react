@@ -12,6 +12,9 @@
 'use strict';
 
 var ReactRef = require('ReactRef');
+var ReactInstrumentation = require('ReactInstrumentation');
+
+var invariant = require('invariant');
 
 /**
  * Helper to call ReactRef.attachRefs with this composite component, split out
@@ -41,6 +44,14 @@ var ReactReconciler = {
     nativeContainerInfo,
     context
   ) {
+    if (__DEV__) {
+      if (internalInstance._debugID !== 0) {
+        ReactInstrumentation.debugTool.onBeginReconcilerTimer(
+          internalInstance._debugID,
+          'mountComponent'
+        );
+      }
+    }
     var markup = internalInstance.mountComponent(
       transaction,
       nativeParent,
@@ -50,6 +61,17 @@ var ReactReconciler = {
     if (internalInstance._currentElement &&
         internalInstance._currentElement.ref != null) {
       transaction.getReactMountReady().enqueue(attachRefs, internalInstance);
+    }
+    if (__DEV__) {
+      if (internalInstance._debugID !== 0) {
+        ReactInstrumentation.debugTool.onEndReconcilerTimer(
+          internalInstance._debugID,
+          'mountComponent'
+        );
+        ReactInstrumentation.debugTool.onMountComponent(
+          internalInstance._debugID
+        );
+      }
     }
     return markup;
   },
@@ -68,9 +90,28 @@ var ReactReconciler = {
    * @final
    * @internal
    */
-  unmountComponent: function(internalInstance) {
+  unmountComponent: function(internalInstance, safely) {
+    if (__DEV__) {
+      if (internalInstance._debugID !== 0) {
+        ReactInstrumentation.debugTool.onBeginReconcilerTimer(
+          internalInstance._debugID,
+          'unmountComponent'
+        );
+      }
+    }
     ReactRef.detachRefs(internalInstance, internalInstance._currentElement);
-    return internalInstance.unmountComponent();
+    internalInstance.unmountComponent(safely);
+    if (__DEV__) {
+      if (internalInstance._debugID !== 0) {
+        ReactInstrumentation.debugTool.onEndReconcilerTimer(
+          internalInstance._debugID,
+          'unmountComponent'
+        );
+        ReactInstrumentation.debugTool.onUnmountComponent(
+          internalInstance._debugID
+        );
+      }
+    }
   },
 
   /**
@@ -103,6 +144,15 @@ var ReactReconciler = {
       return;
     }
 
+    if (__DEV__) {
+      if (internalInstance._debugID !== 0) {
+        ReactInstrumentation.debugTool.onBeginReconcilerTimer(
+          internalInstance._debugID,
+          'receiveComponent'
+        );
+      }
+    }
+
     var refsChanged = ReactRef.shouldUpdateRefs(
       prevElement,
       nextElement
@@ -119,6 +169,18 @@ var ReactReconciler = {
         internalInstance._currentElement.ref != null) {
       transaction.getReactMountReady().enqueue(attachRefs, internalInstance);
     }
+
+    if (__DEV__) {
+      if (internalInstance._debugID !== 0) {
+        ReactInstrumentation.debugTool.onEndReconcilerTimer(
+          internalInstance._debugID,
+          'receiveComponent'
+        );
+        ReactInstrumentation.debugTool.onUpdateComponent(
+          internalInstance._debugID
+        );
+      }
+    }
   },
 
   /**
@@ -130,9 +192,42 @@ var ReactReconciler = {
    */
   performUpdateIfNecessary: function(
     internalInstance,
-    transaction
+    transaction,
+    updateBatchNumber
   ) {
+    if (internalInstance._updateBatchNumber !== updateBatchNumber) {
+      // The component's enqueued batch number should always be the current
+      // batch or the following one.
+      invariant(
+        internalInstance._updateBatchNumber == null ||
+        internalInstance._updateBatchNumber === updateBatchNumber + 1,
+        'performUpdateIfNecessary: Unexpected batch number (current %s, ' +
+        'pending %s)',
+        updateBatchNumber,
+        internalInstance._updateBatchNumber
+      );
+      return;
+    }
+    if (__DEV__) {
+      if (internalInstance._debugID !== 0) {
+        ReactInstrumentation.debugTool.onBeginReconcilerTimer(
+          internalInstance._debugID,
+          'performUpdateIfNecessary'
+        );
+      }
+    }
     internalInstance.performUpdateIfNecessary(transaction);
+    if (__DEV__) {
+      if (internalInstance._debugID !== 0) {
+        ReactInstrumentation.debugTool.onEndReconcilerTimer(
+          internalInstance._debugID,
+          'performUpdateIfNecessary'
+        );
+        ReactInstrumentation.debugTool.onUpdateComponent(
+          internalInstance._debugID
+        );
+      }
+    }
   },
 
 };

@@ -11,12 +11,12 @@
 
 'use strict';
 
+var DisabledInputUtils = require('DisabledInputUtils');
 var DOMPropertyOperations = require('DOMPropertyOperations');
 var LinkedValueUtils = require('LinkedValueUtils');
 var ReactDOMComponentTree = require('ReactDOMComponentTree');
 var ReactUpdates = require('ReactUpdates');
 
-var assign = require('Object.assign');
 var invariant = require('invariant');
 var warning = require('warning');
 
@@ -68,7 +68,7 @@ var ReactDOMTextarea = {
 
     // Always set children to the same thing. In IE9, the selection range will
     // get reset if `textContent` is mutated.
-    var nativeProps = assign({}, props, {
+    var nativeProps = Object.assign({}, DisabledInputUtils.getNativeProps(inst, props), {
       defaultValue: undefined,
       value: undefined,
       children: inst._wrapperState.initialValue,

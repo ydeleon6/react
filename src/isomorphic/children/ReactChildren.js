@@ -117,8 +117,8 @@ function mapSingleChildIntoContext(bookKeeping, child, childKey) {
         // traverseAllChildren used to do for objects as children
         keyPrefix +
         (
-          mappedChild !== child ?
-          escapeUserProvidedKey(mappedChild.key || '') + '/' :
+          (mappedChild.key && (!child || (child.key !== mappedChild.key))) ?
+          escapeUserProvidedKey(mappedChild.key) + '/' :
           ''
         ) +
         childKey
@@ -146,7 +146,7 @@ function mapIntoWithKeyPrefixInternal(children, array, prefix, func, context) {
 /**
  * Maps children that are typically specified as `props.children`.
  *
- * The provided mapFunction(child, key, index) will be called for each
+ * The provided mapFunction(child, index) will be called for each
  * leaf child.
  *
  * @param {?*} children Children tree container.

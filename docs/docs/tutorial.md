@@ -27,7 +27,7 @@ It'll also have a few neat features:
 
 In order to start this tutorial, we're going to require a running server. This will serve purely as an API endpoint which we'll use for getting and saving data. In order to make this as easy as possible, we've created a simple server in a number of scripting languages that does exactly what we need it to do. **You can [view the source](https://github.com/reactjs/react-tutorial/) or [download a zip file](https://github.com/reactjs/react-tutorial/archive/master.zip) containing everything needed to get started.**
 
-For sake of simplicity, the server we will run uses a `JSON` file as a database. You would not run this in production but it makes it easy to simulate what you might do when consuming an API. Once you start the server, it will support our API endpoint and it will also serve the static pages we need.
+For sake of simplicity, the server we will run uses a `JSON` file as a database. You would not run this in production but it makes it easy to simulate what you might do when consuming an API. Once you [start the server](https://github.com/reactjs/react-tutorial/#to-use), it will support our API endpoint and it will also serve the static pages we need.
 
 ### Getting started
 
@@ -43,8 +43,8 @@ For this tutorial, we're going to make it as easy as possible. Included in the s
     <script src="https://cdnjs.cloudflare.com/ajax/libs/react/{{site.react_version}}/react.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/react/{{site.react_version}}/react-dom.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/babel-core/5.8.23/browser.min.js"></script>
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/jquery/2.1.1/jquery.min.js"></script>
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/marked/0.3.2/marked.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jquery/2.2.0/jquery.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/marked/0.3.5/marked.min.js"></script>
   </head>
   <body>
     <div id="content"></div>
@@ -380,8 +380,8 @@ When the component is first created, we want to GET some JSON from the server an
 
 ```json
 [
-  {"author": "Pete Hunt", "text": "This is one comment"},
-  {"author": "Jordan Walke", "text": "This is *another* comment"}
+  {"id": "1", "author": "Pete Hunt", "text": "This is one comment"},
+  {"id": "2", "author": "Jordan Walke", "text": "This is *another* comment"}
 ]
 ```
 
@@ -620,7 +620,7 @@ var CommentBox = React.createClass({
 });
 ```
 
-Let's call the callback from the `CommentForm` when the user submits the form:
+Now that `CommentBox` has made the callback available to `CommentForm` via the `onCommentSubmit` prop, the `CommentForm` can call the callback when the user submits the form:
 
 ```javascript{19}
 // tutorial19.js

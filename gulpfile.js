@@ -14,13 +14,13 @@ var babel = require('gulp-babel');
 var flatten = require('gulp-flatten');
 var del = require('del');
 
-var babelPluginDEV = require('fbjs-scripts/babel/dev-expression');
-var babelPluginModules = require('fbjs-scripts/babel/rewrite-modules');
+var babelPluginModules = require('fbjs-scripts/babel-6/rewrite-modules');
 
 var paths = {
   react: {
     src: [
       'src/**/*.js',
+      '!src/**/__benchmarks__/**/*.js',
       '!src/**/__tests__/**/*.js',
       '!src/**/__mocks__/**/*.js',
       '!src/shared/vendor/**/*.js',
@@ -29,17 +29,34 @@ var paths = {
   },
 };
 
+var fbjsModuleMap = require('fbjs/module-map');
+var moduleMap = {};
+for (var key in fbjsModuleMap) {
+  moduleMap[key] = fbjsModuleMap[key];
+}
+var whiteListNames = [
+  'deepDiffer',
+  'deepFreezeAndThrowOnMutationInDev',
+  'flattenStyle',
+  'InitializeJavaScriptAppEngine',
+  'JSTimersExecution',
+  'RCTEventEmitter',
+  'RCTLog',
+  'TextInputState',
+  'UIManager',
+  'View',
+];
+
+whiteListNames.forEach(function(name) {
+  moduleMap[name] = name;
+});
+
+moduleMap['object-assign'] = 'object-assign';
+
 var babelOpts = {
-  nonStandard: true,
-  blacklist: [
-    'spec.functionName',
+  plugins: [
+    [babelPluginModules, { map: moduleMap }],
   ],
-  optional: [
-    'es7.trailingFunctionCommas',
-  ],
-  plugins: [babelPluginDEV, babelPluginModules],
-  ignore: ['third_party'],
-  _moduleMap: require('fbjs/module-map'),
 };
 
 gulp.task('react:clean', function() {
